@@ -1,4 +1,6 @@
-##############################################
+######################################################
+## This file has been created by Alexandre Courtiol ##
+######################################################
 
 ## Let's prepare the session
   rm(list=ls())  ## remove all objects in the R session
@@ -14,9 +16,10 @@
   table2 <- data.table(read.csv(textConnection(getURL(table2address))))
   table2
 
-  table3address <- "https://docs.google.com/spreadsheets/d/1Xlkyj-QgeMnCPdHiZL-a6f8MCX456as1-HnmvIaeg1M/pub?gid=1477935099&single=true&output=csv"
-  table3 <- data.table(read.csv(textConnection(getURL(table3address))))
+  #table3address <- "https://docs.google.com/spreadsheets/d/1Xlkyj-QgeMnCPdHiZL-a6f8MCX456as1-HnmvIaeg1M/pub?gid=1477935099&single=true&output=csv"
+  table3 <- data.table(read.csv("Table2_auto.csv", header=FALSE))
   table3
+  colnames(table3) <- c("Species", "Years", "Status")
 
 ## Updating old status
 ## Status should be DD (data deficient) or LC > NT > VU > EN > CR > EW > EX
@@ -30,9 +33,12 @@
   table2$Status <- factor(table2$Status)
   levels(table2$Status)[!levels(table2$Status) %in% c("DD", "LC", "NT", "VU", "EN", "CR", "EW", "EX")]
 
-  table3[Status %in% c("LR/lc"), Status := "LC"]
-  table3[Status %in% c("LR/cd", "LR/nt"), Status := "NT"]
-  table3[Status %in% c("I", "K"), Status := "DD"]  ## Not sure about that...
+  table3[Status %in% c("Critically Endangered", "Critically Endangered      (Possibly Extinct)"), Status := "CR"]
+  table3[Status %in% c("Endangered"), Status := "EN"]
+  table3[Status %in% c("Vulnerable"), Status := "VU"]
+  table3[Status %in% c("LR/lc", "Least Concern"), Status := "LC"]
+  table3[Status %in% c("LR/cd", "LR/nt", "Near Threatened"), Status := "NT"]
+  table3[Status %in% c("I", "K", "Data Deficient"), Status := "DD"]  ## Not sure about that...
   table3[Status %in% c("NR"), Status := "NA"]
   table3$Status[table3$Status == "NA"] <- NA
   table3$Status <- factor(table3$Status)
@@ -44,6 +50,7 @@
 
   table(unique(table2$Species) %in% unique(table3$Species))
   table(unique(table3$Species) %in% unique(table2$Species))
+  unique(table2$Species)[!unique(table2$Species) %in% unique(table3$Species)]
   unique(table3$Species)[!unique(table3$Species) %in% unique(table2$Species)]
 
   for(y in unique(table2$Years)){
