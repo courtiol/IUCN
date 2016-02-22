@@ -18,8 +18,8 @@
 
   #table3address <- "https://docs.google.com/spreadsheets/d/1Xlkyj-QgeMnCPdHiZL-a6f8MCX456as1-HnmvIaeg1M/pub?gid=1477935099&single=true&output=csv"
   table3 <- data.table(read.csv("Table2_auto.csv", header=FALSE))
-  table3
   colnames(table3) <- c("Species", "Years", "Status")
+  table3
 
 ## Updating old status
 ## Status should be DD (data deficient) or LC > NT > VU > EN > CR > EW > EX
@@ -33,7 +33,7 @@
   table2$Status <- factor(table2$Status)
   levels(table2$Status)[!levels(table2$Status) %in% c("DD", "LC", "NT", "VU", "EN", "CR", "EW", "EX")]
 
-  table3[Status %in% c("Critically Endangered", "Critically Endangered      (Possibly Extinct)"), Status := "CR"]
+  table3[Status %in% c("Critically Endangered", "Critically Endangered      (Possibly Extinct)", "CR(PE)"), Status := "CR"]
   table3[Status %in% c("Endangered"), Status := "EN"]
   table3[Status %in% c("Vulnerable"), Status := "VU"]
   table3[Status %in% c("LR/lc", "Least Concern"), Status := "LC"]
@@ -46,7 +46,7 @@
 
 ## Comparison of Alia's table Vs Table 2 that had been manually computed
   table(table2$Status)
-  table(table3$Status)
+  2*table(table3$Status)
 
   table(unique(table2$Species) %in% unique(table3$Species))
   table(unique(table3$Species) %in% unique(table2$Species))
@@ -58,9 +58,9 @@
       test <- unique(as.character(table2[Years==y & Species==s & !is.na(Status)==TRUE, Status])) != as.character(table3[Years==y & Species==s & !is.na(Status)==TRUE, Status])
       if(length(test) > 1) stop(paste("Bug caused by student discrepancies", s, y))
       if(length(test)>0 && test==TRUE)
-        print(rbind(
+        print(cbind(who=c("Students", "Students", "Alia"), rbind(
           table2[Years==y & Species==s, data.frame(Species, Years, Status)],
-          table3[Years==y & Species==s, data.frame(Species, Years, Status)]))
+          table3[Years==y & Species==s, data.frame(Species, Years, Status)])))
     }
   }
 
