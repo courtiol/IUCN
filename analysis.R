@@ -148,21 +148,81 @@
   table3$Status <- factor(table3$Status)
   table(table3$Status)
 
+  possible_status <- c("LC", "NT", "VU", "EN", "CR", "EW", "EX", "R", "DD", "NO")
+
   table3wide <- dcast(table3, Species ~ Years, fun=function(x) unique(as.character(x))[1], value.var="Status")
   table3wide
   table3wide["Aeshna persephone", ]
   
-  table3wideNumeric <- dcast(table3, Species ~ Years, fun=function(x) paste(as.numeric(x[1]), collapse=""), value.var="Status")
+  table3$Status_nb <- unlist(lapply(strsplit(as.character(table3$Status), "_"), function(y) as.numeric(y[1])))
+
+  table3wideNumeric <- dcast(table3, Species ~ Years, fun=function(x) unique(x)[1], value.var="Status_nb")
+
   table3wideNumeric[, !c("Species"), with=FALSE]
 
-## Let's plot the changes
+  tableNbClass$NbChanges <- NA
+  for(i in 1:nrow(table3wideNumeric)){
+	 m <- rbind(c(table3wideNumeric[i, ], NA), c(NA,table3wideNumeric[i, ]))[,-c(1,2,ncol(table3wideNumeric)+1)]
+	changes <- apply(m, 2, function(x) as.numeric(x[2])- as.numeric(x[1]))
+	tableNbClass$NbChanges[i] <- sum(changes != 0)
+	}
+ 
+ tableNbClass
 
+
+## Let's plot the changes
+  Nos <- apply(table3wide, 1, function(x) any(x=="10_NO"))
+
+  table4txt <- table3wide[tableNbClass$NbChanges==1 & !Nos,]
+  table4 <- table3wideNumeric[tableNbClass$NbChanges==1 & ! Nos,]
   table(table3$Status)
 
+  table5 <- data.frame(
+	Species=table4txt$Species,
+	Status_before=unlist(table4txt[, 2, with=FALSE]),
+	Status_after=unlist(table4txt[, ncol(table4txt), with=FALSE]),
+	Status_before_nb=unlist(table4[, 2, with=FALSE]),
+	Status_after_nb=unlist(table4[, ncol(table4txt), with=FALSE])
+	)
+  table5
+  table5$Change <- NA
+  for(i in 1:nrow(table5)){
+	if(table5$Status_before[i]=="9_DD" & table5$Status_after[i]!="9_DD")
+		table5$Change[i] <- "Gain_info"
+	if(table5$Status_before[i]!="9_DD" & table5$Status_after[i]=="9_DD")
+		table5$Change[i] <- "Loss_info"
+	if(table5$Status_before[i]=="8_R" & table5$Status_after[i] %in% c("1_LC","2_NT"))
+		table5$Change[i] <- "Better"
+	if(table5$Status_before[i]=="8_R" & !table5$Status_after[i] %in% c("1_LC","2_NT"))
+		table5$Change[i] <- "Unclear"
+	if(!table5$Status_before[i] %in%c("8_R", "9_DD") &
+	   !table5$Status_before[i] %in% c("8_R","9_DD") &
+		table5$Status_before_nb[i] > table5$Status_after_nb[i])
+		table5$Change[i] <- "Better"
+		if(!table5$Status_before[i] %in%c("8_R", "9_DD") &
+	   !table5$Status_after[i] %in% c("8_R","9_DD") &
+		table5$Status_before_nb[i] < table5$Status_after_nb[i])
+		table5$Change[i] <- "Worse"
+	}
+	
+	 table5[is.na(table5$Change), ]
+
+table( table5$Change)
+
+# add starting date, ending date, date of change, so that Alia can use it, create also empty columns for info to add (citation number)
+
+
   par(las=2, mar=c(5,5,1,1), mgp=c(4,1,0))
-  plot(as.numeric(table3wideNumeric[1, !c("Species"), with=FALSE])~ I(1998:2015),
-   type="l", ylim=c(1,length(levels(table3$Status))), ylab="IUCN changes", xlab="years", axes = FALSE)
-  for(i in 1:nrow(table3wideNumeric))
-    points(as.numeric(table3wideNumeric[i, !c("Species"), with=FALSE])~ I(1998:2015), type="l")
+  plot(as.numeric(table4[1, !c("Species"), with=FALSE])~ I(1998:2015), col=0,
+   type="l", ylim=c(1,length(possible_status)), ylab="IUCN changes", xlab="years", axes = FALSE)
+  for(i in 1:nrow(table4)){
+	line <- as.numeric(table4[i, !c("Species"), with=FALSE])
+    	points(line+runif(1,min=0,max=0.4)~ I(1998:2015), type="l", col=ifelse(any(line==9),1,1))
+	}
   axis(1, at=1998:2015)
-  axis(2, at=1:length(levels(table3$Status)), labels = levels(table3$Status))
+  axis(2, at=1:length(possible_status), labels = possible_status)
+
+   table(unlist(table4txt[,2, with=F]), unlist(table4txt[,ncol(table4txt), with=F]))
+
+
+
