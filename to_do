@@ -1,0 +1,8 @@
+Automate this workflow:
+import name, starting and stopping date (from R)
+get synonyms (from IUCN API)
+search web of science
+  - get number of results
+  - export data/abstracts/etc
+
+
