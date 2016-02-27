@@ -13,7 +13,7 @@
 
   first.year <- 1998
   last.year <- 2015
-  year.change <- 2006 ## for change 2006/(year.change+1)
+  year.change <- 2007 ## for change 2006/2007
 
   possible_status <- c("LC", "NT", "VU", "EN", "CR", "EW", "EX", "R", "DD", "NO")
   unique(table.raw$Status[!table.raw$Status %in% possible_status])  ## other status in raw table
@@ -47,10 +47,10 @@
   table.raw$Status <- factor(table.raw$Status)
   table(table.raw$Status, useNA="always")
 
-## Let's identify the species who did not change between year.change and (year.change+1)
+## Let's identify the species who did not change between year.change-1 and year.change
     Sp_to_remove <- NULL
     for(s in unique(table.raw$Species)){
-      if(any(table.raw[Species == s & Years == year.change, Status] == table.raw[Species == s & Years == (year.change+1), Status])){
+      if(any(table.raw[Species == s & Years == (year.change-1), Status] == table.raw[Species == s & Years == year.change, Status])){
         warning(paste("no change for species", s))
         Sp_to_remove <- c(Sp_to_remove, s)
       }
@@ -59,11 +59,11 @@
   # "Psittacus erithacus"  ## Species were taxonomically split and therefore status occurring before is thus unknown
   # "Heteromirafra sidamoensis"  ## Species name was changed in 2013
   # "Podocarpus barretoi"  ## Discarded taxonomic concept
-  # "Corvus unicolor" ## Species that did not change in (year.change+1) in species info
-  # "Podocarpus costaricensis" ## Species that did not change in (year.change+1) in species info
-  # "Lipotes vexillifer" ## Species that did not change in (year.change+1) in species info
-  # "Aythya innotata" ## Species that did not change in (year.change+1) in species info
-  # "Melamprosops phaeosoma" ## Species that did not change in (year.change+1) in species info
+  # "Corvus unicolor" ## Species that did not change in year.change in species info
+  # "Podocarpus costaricensis" ## Species that did not change in year.change in species info
+  # "Lipotes vexillifer" ## Species that did not change in year.change in species info
+  # "Aythya innotata" ## Species that did not change in year.change in species info
+  # "Melamprosops phaeosoma" ## Species that did not change in year.change in species info
   # Note:   "Sarcogyps calvus" inconsistent but website is correct (IUCN communication)
 
 
