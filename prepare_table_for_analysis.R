@@ -167,7 +167,7 @@
   table.final$PublicationsBefore <- NA
   table.final$PublicationsAfter <- NA
   table.final$DateOfSearch <- NA
-  table.final$StringUsedForSearch <- NA
+  table.final$StringUsedForSearch <- ""
   
   if(sum(is.na(table.final$Change))>0) stop("NA problems in final table")
 
