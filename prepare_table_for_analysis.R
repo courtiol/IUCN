@@ -166,6 +166,8 @@
   table.final$LastYear <- last.year
   table.final$PublicationsBefore <- NA
   table.final$PublicationsAfter <- NA
+  table.final$DateOfSearch <- NA
+  table.final$StringUsedForSearch <- NA
   
   if(sum(is.na(table.final$Change))>0) stop("NA problems in final table")
 
