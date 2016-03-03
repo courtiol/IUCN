@@ -6,7 +6,8 @@ from bs4 import BeautifulSoup
 start_year = '1998'
 end_year = '2015'
 browser = mechanicalsoup.Browser()
-page = browser.get('http://apps.webofknowledge.com/UA_GeneralSearch_input.do')
+url = 'http://apps.webofknowledge.com/UA_GeneralSearch.do'
+page = browser.get(url)
 
 form = page.soup.select('form')[3] # The 4th form is the search form
 
@@ -20,7 +21,6 @@ form_dict['value(input1)'] = 'homo sapiens'
 form_dict['startYear'] = start_year
 form_dict['endYear'] = end_year
 
-url = page.url[:-3] + form['action']
 print(url)
 #search_result = requests.post(url, data=form_dict)
 search_result = requests.post(url, data=form_dict, cookies=page.cookies)
