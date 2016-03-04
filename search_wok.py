@@ -24,7 +24,7 @@ def search_wok(search_string, start_year, end_year):
 def get_result_count(search_result_text):
     # Get total number of results per search for some keywords
     result_count_location = re.compile('FINAL_DISPLAY_RESULTS_COUNT = \d+').search(search_result_text).span()
-    result_count = search_result_text[result_count_location[0]:result_count_location[1]].split()[-1]
+    return search_result_text[result_count_location[0]:result_count_location[1]].split()[-1]
 
 # Step 2:
 # Add to marked list and export with abstracts and everything
@@ -34,4 +34,4 @@ def write_res(string):
     f.write(string)
     f.close()
 
-search_wok('homo sapiens', 1998, 2015)
+search = search_wok('homo sapiens', 1998, 2015)
