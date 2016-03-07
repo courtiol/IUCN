@@ -40,22 +40,31 @@ result_count = get_result_count(search.text)
 # Export with abstracts and everything
 soup = BeautifulSoup(search.text)
 base_url = 'http://apps.webofknowledge.com'
-
+record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
 # combine the following into recursive function
 # start at record 1
-req = requests.get(base_url + soup.find('div', id='RECORD_1').find('a')['href'])
+
+req = requests.get(base_url + record_1_link)
 soup = BeautifulSoup(req.text)
-title = soup.select_one('div.title').select_one('value').text
-pub_date = soup.find('span', string='Published:').findNext('value').text
-if soup.select_one('div.title').select_one('item') != None
-title = soup.select_one('div.title').select_one('item').text
-pub_date = soup.find('span', string='Published:').next.next # group in title if, formatted different depending on ....
+if soup.select_one('div.title').select_one('item') != None:
+    title = soup.select_one('div.title').select_one('item').text
+    pub_date = soup.find('span', string='Published:').next.next
+elif soup.select_one('div.title').select_one('value') != None:
+    title = soup.select_one('div.title').select_one('value').text
+    pub_date = soup.find('span', string='Published:').findNext('value').text
+
 authors = []
 author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
 for link in author_links:
     authors.append(link.text)
 
-doi = soup.find('span', string='DOI:').findNext('value').text
+if soup.find('span', string='DOI:') != None:
+    if soup.find('span', string='DOI:').next.next == '\n':
+        doi = soup.find('span', string='DOI:').findNext('value').text
+    else:
+        doi = soup.find('span', string='DOI:').next.next
+else:
+    doi = 'NA'
 journal = soup.select_one('p.sourceTitle').select_one('value').text
 abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
 next_link = soup.find('a', class_='paginationNext')['href']
@@ -64,14 +73,11 @@ next_link = soup.find('a', class_='paginationNext')['href']
 # Next record
 req = requests.get(base_url + next_link)
 soup = BeautifulSoup(req.text)
-# title needs if statement to check if 'item' or 'value'
 authors = []
 author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
 for link in author_links:
     authors.append(link.text)
 
-# doi needs if statement in case no doi
-doi = soup.find('span', string='DOI:').next.next
 journal = soup.select_one('p.sourceTitle').select_one('value').text
 abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
 next_link = soup.find('a', class_='paginationNext')['href']
