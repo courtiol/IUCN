@@ -47,47 +47,37 @@ result_count = get_result_count(search.text)
 soup = BeautifulSoup(search.text)
 base_url = 'http://apps.webofknowledge.com'
 record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
-# combine the following into recursive function
-# start at record 1
+def scrape_record_data(record_link):
+    req = requests.get(base_url + record_link)
+    soup = BeautifulSoup(req.text)
+    if soup.select_one('div.title').select_one('item') != None:
+        title = soup.select_one('div.title').select_one('item').text
+        pub_date = soup.find('span', string='Published:').next.next
+    elif soup.select_one('div.title').select_one('value') != None:
+        title = soup.select_one('div.title').select_one('value').text
+        pub_date = soup.find('span', string='Published:').findNext('value').text
 
-req = requests.get(base_url + record_1_link)
-soup = BeautifulSoup(req.text)
-if soup.select_one('div.title').select_one('item') != None:
-    title = soup.select_one('div.title').select_one('item').text
-    pub_date = soup.find('span', string='Published:').next.next
-elif soup.select_one('div.title').select_one('value') != None:
-    title = soup.select_one('div.title').select_one('value').text
-    pub_date = soup.find('span', string='Published:').findNext('value').text
+    authors = []
+    author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
+    for link in author_links:
+        authors.append(link.text)
 
-authors = []
-author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
-for link in author_links:
-    authors.append(link.text)
-
-if soup.find('span', string='DOI:') != None:
-    if soup.find('span', string='DOI:').next.next == '\n':
-        doi = soup.find('span', string='DOI:').findNext('value').text
+    if soup.find('span', string='DOI:') != None:
+        if soup.find('span', string='DOI:').next.next == '\n':
+            doi = soup.find('span', string='DOI:').findNext('value').text
+        else:
+            doi = soup.find('span', string='DOI:').next.next
     else:
-        doi = soup.find('span', string='DOI:').next.next
-else:
-    doi = 'NA'
-journal = soup.select_one('p.sourceTitle').select_one('value').text
-abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
-times_cited = soup.find('span', class_='TCcountFR').text
-next_link = soup.find('a', class_='paginationNext')['href']
-record_data_list = [title, authors, pub_date, journal, doi, times_cited]
-# then write all values to file
-write_record_to_csv(record_data_list)
+        doi = 'NA'
+    journal = soup.select_one('p.sourceTitle').select_one('value').text
+    abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
+    times_cited = soup.find('span', class_='TCcountFR').text
+    next_link = soup.find('a', class_='paginationNext')['href']
+    record_number = next_link.split('=')[-1]
+    record_data_list = [record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
+    print(record_number)
+    write_record_to_csv(record_data_list)
+    if soup.find('a', class_='paginationNextDisabled'):
+        scrape_record_data(next_link)
 
-# Next record
-req = requests.get(base_url + next_link)
-soup = BeautifulSoup(req.text)
-authors = []
-author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
-for link in author_links:
-    authors.append(link.text)
-
-journal = soup.select_one('p.sourceTitle').select_one('value').text
-abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
-next_link = soup.find('a', class_='paginationNext')['href']
-# check for class="paginationNext paginationNextDisabled" to indicate last page
+scrape_record_data(record_1_link)
