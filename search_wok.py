@@ -34,6 +34,11 @@ def write_res(string):
     f.write(string)
     f.close()
 
+def write_record_to_csv(list):
+    with open('records_out.csv', 'a', newline='') as csvfile:
+        outputter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        outputter.writerow(list)
+
 search = search_wok('homo sapiens', 1998, 2015)
 result_count = get_result_count(search.text)
 
@@ -67,8 +72,11 @@ else:
     doi = 'NA'
 journal = soup.select_one('p.sourceTitle').select_one('value').text
 abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
+times_cited = soup.find('span', class_='TCcountFR').text
 next_link = soup.find('a', class_='paginationNext')['href']
+record_data_list = [title, authors, pub_date, journal, doi, times_cited]
 # then write all values to file
+write_record_to_csv(record_data_list)
 
 # Next record
 req = requests.get(base_url + next_link)
