@@ -77,7 +77,7 @@ def scrape_record_data(record_link):
     record_data_list = [record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
     print(record_number)
     write_record_to_csv(record_data_list)
-    if soup.find('a', class_='paginationNextDisabled'):
+    if soup.find('a', class_='paginationNextDisabled') == None:
         scrape_record_data(next_link)
 
 scrape_record_data(record_1_link)
