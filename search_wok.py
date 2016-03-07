@@ -25,19 +25,9 @@ def search_wok(search_string, start_year, end_year):
 def get_result_count(search_result_text):
     # Get total number of results per search
     # "Number of results is approximate" so not actually accurate
-    # 'homo sapiens' search says 6,981, but when you go to the last record it's actually 4,681
+    # 'homo sapiens' search says 6,981, but when you go to the last record it's actually 4,681 with the databases FU has
     result_count_location = re.compile('FINAL_DISPLAY_RESULTS_COUNT = \d+').search(search_result_text).span()
     return search_result_text[result_count_location[0]:result_count_location[1]].split()[-1]
-
-#def add_to_marked_list(search_results, mark_from, mark_to):
-#    r = BeautifulSoup(search_results.text)
-#    add_to_marked_list_form = r.select('form')[9]
-#    add_to_marked_list_data = {e['name']: e.get('value', '') for e in add_to_marked_list_form.find_all('input', {'name': True})}
-#    add_to_marked_list_data = {'product': add_to_marked_list_data['product'], 'mark_id': add_to_marked_list_data['mark_id'], 'SID': add_to_marked_list_data['SID'], 'qid': add_to_marked_list_data['qid'], 'search_mode': add_to_marked_list_data['search_mode'], 'viewType': 'summary', 'value(record_select_type)': 'range', 'mark_from': mark_from, 'mark_to': mark_to, 'markFrom': mark_from, 'markTo': mark_to}
-#    marked_list_form_url = 'http://apps.webofknowledge.com/MarkRecords.do'
-#    print(add_to_marked_list_data)
-#
-#    return requests.get(marked_list_form_url, params=add_to_marked_list_data)
 
 def write_res(string):
     f = open('out.html', 'w')
@@ -57,6 +47,9 @@ req = requests.get(base_url + soup.find('div', id='RECORD_1').find('a')['href'])
 soup = BeautifulSoup(req.text)
 title = soup.select_one('div.title').select_one('value').text
 pub_date = soup.find('span', string='Published:').findNext('value').text
+if soup.select_one('div.title').select_one('item') != None
+title = soup.select_one('div.title').select_one('item').text
+pub_date = soup.find('span', string='Published:').next.next # group in title if, formatted different depending on ....
 authors = []
 author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
 for link in author_links:
@@ -72,8 +65,6 @@ next_link = soup.find('a', class_='paginationNext')['href']
 req = requests.get(base_url + next_link)
 soup = BeautifulSoup(req.text)
 # title needs if statement to check if 'item' or 'value'
-title = soup.select_one('div.title').select_one('item').text
-pub_date = soup.find('span', string='Published:').next.next # group in title if, formatted different depending on ....
 authors = []
 author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
 for link in author_links:
