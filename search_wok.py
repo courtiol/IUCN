@@ -4,9 +4,15 @@ import re
 from bs4 import BeautifulSoup
 import csv
 
+csv_name_file = Table2007.csv
+column_number = 1 # Column with scientific names to query for
+
+base_url = 'http://apps.webofknowledge.com'
+
 def search_wok(search_string, start_year, end_year):
+    print('!!!! Searching ' + search_string + ' !!!!')
     browser = mechanicalsoup.Browser()
-    url = 'http://apps.webofknowledge.com/UA_GeneralSearch.do'
+    url = base_url + '/UA_GeneralSearch.do'
     page = browser.get(url)
 
     form = page.soup.select('form')[3] # The 4th form is the search form
@@ -30,23 +36,6 @@ def get_result_count(search_result_text):
     result_count_location = re.compile('FINAL_DISPLAY_RESULTS_COUNT = \d+').search(search_result_text).span()
     return search_result_text[result_count_location[0]:result_count_location[1]].split()[-1]
 
-def write_res(string):
-    f = open('out.html', 'w')
-    f.write(string)
-    f.close()
-
-def write_record_to_csv(list):
-    with open('records_out.csv', 'a', newline='') as csvfile:
-        outputter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        outputter.writerow(list)
-
-search = search_wok('homo sapiens', 1998, 2015)
-result_count = get_result_count(search.text)
-
-# Export with abstracts and everything
-soup = BeautifulSoup(search.text)
-base_url = 'http://apps.webofknowledge.com'
-record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
 def scrape_record_data(record_link):
     req = requests.get(base_url + record_link)
     soup = BeautifulSoup(req.text)
@@ -70,14 +59,60 @@ def scrape_record_data(record_link):
     else:
         doi = 'NA'
     journal = soup.select_one('p.sourceTitle').select_one('value').text
-    abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text
+    abstract = soup.find('div', class_='title3', string='Abstract').findNext('p', class_='FR_field').text.strip()
     times_cited = soup.find('span', class_='TCcountFR').text
     next_link = soup.find('a', class_='paginationNext')['href']
-    record_number = next_link.split('=')[-1]
+    record_number = int(next_link.split('=')[-1]) - 1
     record_data_list = [record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
     print(record_number)
     write_record_to_csv(record_data_list)
     if soup.find('a', class_='paginationNextDisabled') == None:
         scrape_record_data(next_link)
 
-scrape_record_data(record_1_link)
+def write_res(html_string): # output a html file for debugging
+    f = open('out.html', 'w')
+    f.write(html_string)
+    f.close()
+
+def write_record_to_csv(list):
+    with open('records_out.csv', 'a', newline='') as csvfile:
+        outputter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        outputter.writerow(list)
+
+# import csv file with species names
+species_list = []
+listfile_unprocessed = []
+with open(csv_name_file, newline='') as csvfile:
+     listfile = csv.reader(csvfile, delimiter=',', quotechar='"')
+     for row in listfile:
+         listfile_unprocessed.append(row)
+
+for row in listfile_unprocessed:
+    species_name = row[(column_number - 1)]
+    if species_name not in species_list:
+        species_list.append(species_name)
+
+year_range_before = [listfile_unprocessed[5], listfile_unprocessed[4]]
+year_range_after = [str(int(listfile_unprocessed[4]) + 1), listfile_unprocessed[6]]
+print('RANGES')
+print(year_range_before)
+print(year_range_after)
+
+species_list.pop(0) # Get rid of column title
+print(species_list)
+
+def process_search(species, search_result_object): # search result object is search_wok(search_string, start_year, end_year):
+    search_result_text = search_result_object.text
+    result_count = get_result_count(search_result_text)
+    soup = BeautifulSoup(search_result_text)
+    record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
+    scrape_record_data(record_1_link)
+
+
+for species in species_list:
+    search_string_1 = '"' + species + '"'
+    search_string_2 = ' AND '.join(species.split())
+    process_search(species, search_wok(search_string_1, year_range_before[0], year_range_before[1]))
+    process_search(species, search_wok(search_string_2, year_range_before[0], year_range_before[1]))
+    process_search(species, search_wok(search_string_1, year_range_after[0], year_range_after[1]))
+    process_search(species, search_wok(search_string_2, year_range_after[0], year_range_after[1]))
