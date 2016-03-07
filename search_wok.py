@@ -2,6 +2,7 @@ import mechanicalsoup
 import requests
 import re
 from bs4 import BeautifulSoup
+import csv
 
 def search_wok(search_string, start_year, end_year):
     browser = mechanicalsoup.Browser()
