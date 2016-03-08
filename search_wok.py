@@ -7,8 +7,6 @@ import csv
 csv_name_file = 'Table_2007.csv'
 column_number = 1 # Column with scientific names to query for
 
-search_id = 0
-
 base_url = 'http://apps.webofknowledge.com'
 errors = []
 
@@ -119,7 +117,6 @@ print(year_range_before)
 print(year_range_after)
 
 def process_search(species, search_string, start_year, end_year, search_id): # search result object is search_wok(search_string, start_year, end_year):
-    search_id = search_id + 1
     search_result_text = search_wok(search_string, start_year, end_year).text
     soup = BeautifulSoup(search_result_text)
     if soup.find('div', class_='newErrorHead') != None:
@@ -131,12 +128,18 @@ def process_search(species, search_string, start_year, end_year, search_id): # s
         result_count = get_result_count(search_result_text)
         record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
         scrape_record_data(record_1_link, 0, search_id)
-    write_to_csv('result_count.csv', [species, search_string, start_year, end_year, result_count])
+    write_to_csv('result_count.csv', [search_id, species, search_string, start_year, end_year, result_count])
+
+search_id = 1
 
 for species in species_list:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
     process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id)
+    search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
     process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id)
+    search_id += 1
     process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id)
+    search_id += 1
     process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id)
+    search_id += 1
