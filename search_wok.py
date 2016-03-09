@@ -74,12 +74,19 @@ def scrape_record_data(record_link, last_record_number, search_id):
     else:
         print('scrape_record_data get %s failed!!!' % record_link)
     soup = BeautifulSoup(req.text)
+
     if soup.select_one('div.title').select_one('item') != None:
         title = soup.select_one('div.title').select_one('item').text
         pub_date = soup.find('span', string='Published:').next.next
     elif soup.select_one('div.title').select_one('value') != None:
         title = soup.select_one('div.title').select_one('value').text
         pub_date = soup.find('span', string='Published:').findNext('value').text
+    elif soup.select_one('div.title') != None:
+        title = soup.select_one('div.title').text
+    else:
+        title = 'TITLE TEXT NOT FOUND, CHECK MANUALLY'
+    if title == '\n':
+            title = 'TITLE TEXT NOT FOUND, CHECK MANUALLY'
 
     authors = []
     author_links = soup.find_all('a', attrs={'href': re.compile('AU')})
@@ -163,18 +170,18 @@ print(year_range_after)
 search_id = 1
 
 # Write column headings to files
-write_to_csv('results_count.csv', ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
+write_to_csv('result_count.csv', ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
 write_to_csv('records_out.csv', ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
 
 for species in species_list:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
-    process_search(species, search_string_1, year_range_before[0], year_range_before[1], 'results_count.csv')
+    process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
     search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
-    process_search(species, search_string_2, year_range_before[0], year_range_before[1], 'results_count.csv')
+    process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
     search_id += 1
-    process_search(species, search_string_1, year_range_after[0], year_range_after[1], 'results_count.csv')
+    process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id, 'result_count.csv')
     search_id += 1
-    process_search(species, search_string_2, year_range_after[0], year_range_after[1], 'results_count.csv')
+    process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id, 'result_count.csv')
     search_id += 1
     time.sleep(random.randint(1, 9))
