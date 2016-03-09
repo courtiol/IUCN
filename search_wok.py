@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
 import mechanicalsoup
 import requests
 import re
 from bs4 import BeautifulSoup
 import csv
+import time
+import random
 
 csv_name_file = 'Table_2007.csv'
 column_number = 1 # Column with scientific names to query for
@@ -14,7 +17,16 @@ def search_wok(search_string, start_year, end_year):
     print('!!!! Searching ' + search_string + ' !!!!')
     browser = mechanicalsoup.Browser()
     url = base_url + '/UA_GeneralSearch.do'
-    page = browser.get(url)
+    for get_attempt in range(10):
+        try:
+            page = browser.get(url)
+        except:
+            print('search_wok get attempt #%s failed' % get_attempt)
+            time.sleep(10)
+        else:
+            break
+    else:
+        print('search_wok search %s failed at get!!!' % search_string)
 
     form = page.soup.select('form')[3] # The 4th form is the search form
 
@@ -26,7 +38,16 @@ def search_wok(search_string, start_year, end_year):
     form_dict['startYear'] = start_year
     form_dict['endYear'] = end_year
 
-    search_result = requests.post(url, data=form_dict) # don't seem to need cookies, add 'cookies=page.cookies' if issues arise
+    for post_attempt in range(10):
+        try:
+            search_result = requests.post(url, data=form_dict) # don't seem to need cookies, add 'cookies=page.cookies' if issues arise
+        except:
+            print('search_wok post attempt #%s failed' % post_attempt)
+            time.sleep(10)
+        else:
+            break
+    else:
+        print('search_wok search %s failed at post!!!' % search_string)
     # probably a good idea to add some error management before returning
     return search_result
 
@@ -42,7 +63,16 @@ def get_result_count(search_result_text):
         errors.append(['get_result_count', search_result_text])
 
 def scrape_record_data(record_link, last_record_number, search_id):
-    req = requests.get(base_url + record_link)
+    for get_attempt in range(10):
+        try:
+            req = requests.get(base_url + record_link)
+        except:
+            print('scrape_record_data get attempt #%s failed' % get_attempt)
+            time.sleep(10)
+        else:
+            break
+    else:
+        print('scrape_record_data get %s failed!!!' % record_link)
     soup = BeautifulSoup(req.text)
     if soup.select_one('div.title').select_one('item') != None:
         title = soup.select_one('div.title').select_one('item').text
@@ -83,6 +113,20 @@ def scrape_record_data(record_link, last_record_number, search_id):
         write_to_csv('records_out.csv', record_data_list)
         print('Done with scraping this search!')
 
+def process_search(species, search_string, start_year, end_year, search_id, output_file):
+    search_result_text = search_wok(search_string, start_year, end_year).text
+    soup = BeautifulSoup(search_result_text)
+    if soup.find('div', class_='newErrorHead') != None:
+        if soup.find('div', class_='newErrorHead').text == 'Your search found no records.':
+            result_count = '0'
+        else:
+            result_count = soup.find('div', class_='newErrorHead').text
+    else:
+        result_count = get_result_count(search_result_text)
+        record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
+        scrape_record_data(record_1_link, 0, search_id)
+    write_to_csv(output_file, [search_id, species, search_string, start_year, end_year, result_count])
+
 def write_res(html_string): # output a html file for debugging
     f = open('out.html', 'w')
     f.write(html_string)
@@ -116,30 +160,21 @@ print('RANGES')
 print(year_range_before)
 print(year_range_after)
 
-def process_search(species, search_string, start_year, end_year, search_id): # search result object is search_wok(search_string, start_year, end_year):
-    search_result_text = search_wok(search_string, start_year, end_year).text
-    soup = BeautifulSoup(search_result_text)
-    if soup.find('div', class_='newErrorHead') != None:
-        if soup.find('div', class_='newErrorHead').text == 'Your search found no records.':
-            result_count = '0'
-        else:
-            result_count = soup.find('div', class_='newErrorHead').text
-    else:
-        result_count = get_result_count(search_result_text)
-        record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
-        scrape_record_data(record_1_link, 0, search_id)
-    write_to_csv('result_count.csv', [search_id, species, search_string, start_year, end_year, result_count])
-
 search_id = 1
+
+# Write column headings to files
+write_to_csv('results_count.csv', ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
+write_to_csv('records_out.csv', ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
 
 for species in species_list:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
-    process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id)
+    process_search(species, search_string_1, year_range_before[0], year_range_before[1], 'results_count.csv')
     search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
-    process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id)
+    process_search(species, search_string_2, year_range_before[0], year_range_before[1], 'results_count.csv')
     search_id += 1
-    process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id)
+    process_search(species, search_string_1, year_range_after[0], year_range_after[1], 'results_count.csv')
     search_id += 1
-    process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id)
+    process_search(species, search_string_2, year_range_after[0], year_range_after[1], 'results_count.csv')
     search_id += 1
+    time.sleep(random.randint(1, 9))
