@@ -83,8 +83,10 @@ def scrape_record_data(record_link, last_record_number, search_id):
         pub_date = soup.find('span', string='Published:').findNext('value').text
     elif soup.select_one('div.title') != None:
         title = soup.select_one('div.title').text
+        pub_date = soup.find('span', string='Published:').next.next
     else:
         title = 'TITLE TEXT NOT FOUND, CHECK MANUALLY'
+        pub_date = soup.find('span', string='Published:').next.next
     if title == '\n':
             title = 'TITLE TEXT NOT FOUND, CHECK MANUALLY'
 
@@ -167,16 +169,16 @@ print('RANGES')
 print(year_range_before)
 print(year_range_after)
 
-search_id = 1
+search_id = 151
 
 # Write column headings to files
 write_to_csv('result_count.csv', ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
 write_to_csv('records_out.csv', ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
 
-for species in species_list:
+for species in species_list[species_list.index('Gorilla gorilla'):species_list.index('Gorilla gorilla') + 1]:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
-    process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
+    #process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
     search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
     process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
     search_id += 1
