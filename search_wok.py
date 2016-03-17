@@ -143,8 +143,11 @@ def write_res(html_string): # output a html file for debugging
 
 def write_to_csv(file_name, list):
     with open(file_name, 'a', newline='') as csvfile:
-        outputter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        outputter.writerow(list)
+        try:
+            outputter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            outputter.writerow(list)
+        finally:
+            csvfile.close()
 
 # import csv file with species names
 species_list = []
@@ -153,6 +156,7 @@ with open(csv_name_file, newline='') as csvfile:
      listfile = csv.reader(csvfile, delimiter=',', quotechar='"')
      for row in listfile:
          listfile_unprocessed.append(row)
+     listfile.close()
 
 listfile_unprocessed.pop(0) # Get rid of column title
 
