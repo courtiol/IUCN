@@ -62,7 +62,8 @@ def get_result_count(search_result_text):
         print('Error in get_result_count')
         errors.append(['get_result_count', search_result_text])
 
-def scrape_record_data(record_link, last_record_number, search_id):
+# BAUSTELLE
+def scrape_record_data(record_link, last_record_number, search_id, output_file):
     for get_attempt in range(10):
         try:
             req = requests.get(base_url + record_link)
@@ -113,13 +114,12 @@ def scrape_record_data(record_link, last_record_number, search_id):
         record_number = int(next_link.split('=')[-1]) - 1
         record_data_list = [search_id, record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
         print(record_number)
-        write_to_csv('records_out.csv', record_data_list)
-        scrape_record_data(next_link, record_number, search_id)
+        write_to_csv(output_file, record_data_list)
     else:
         record_number = last_record_number + 1
         record_data_list = [search_id, record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
         print(record_number)
-        write_to_csv('records_out.csv', record_data_list)
+        write_to_csv(output_file, record_data_list)
         print('Done with scraping this search!')
 
 def process_search(species, search_string, start_year, end_year, search_id, output_file):
@@ -133,8 +133,8 @@ def process_search(species, search_string, start_year, end_year, search_id, outp
     else:
         result_count = get_result_count(search_result_text)
         record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
-        scrape_record_data(record_1_link, 0, search_id)
     write_to_csv(output_file, [search_id, species, search_string, start_year, end_year, result_count])
+    return record_1_link
 
 def write_res(html_string): # output a html file for debugging
     f = open('out.html', 'w')
@@ -156,7 +156,7 @@ with open(csv_name_file, newline='') as csvfile:
      listfile = csv.reader(csvfile, delimiter=',', quotechar='"')
      for row in listfile:
          listfile_unprocessed.append(row)
-     listfile.close()
+     csvfile.close()
 
 listfile_unprocessed.pop(0) # Get rid of column title
 
@@ -174,20 +174,25 @@ print(year_range_before)
 print(year_range_after)
 
 search_id = 151
+result_count_file = './output/result_count.csv'
 
 # Write column headings to files
-write_to_csv('result_count.csv', ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
-write_to_csv('records_out.csv', ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
+write_to_csv(result_count_file, ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
 
 for species in species_list[species_list.index('Gorilla gorilla'):species_list.index('Gorilla gorilla') + 1]:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
-    #process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
+    file_name_1 = './output/' + '_'.join(species.split()) + '-quotes.csv'
+    file_name_2 = './output/' + '_'.join(species.split()) + '-and.csv'
+    # Write column headings to files
+    write_to_csv(file_name_1, ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
+    write_to_csv(file_name_2, ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
+    scrape_record_data(process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, result_count_file), 0, search_id, file_name_1)
     search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
-    process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id, 'result_count.csv')
+    scrape_record_data(process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id, result_count_file), 0, search_id, file_name_2)
     search_id += 1
-    process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id, 'result_count.csv')
+    scrape_record_data(process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id, result_count_file), 0, search_id, file_name_1)
     search_id += 1
-    process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id, 'result_count.csv')
+    scrape_record_data(process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id, result_count_file), 0, search_id, file_name_2)
     search_id += 1
-    time.sleep(random.randint(1, 9))
+    time.sleep(random.randint(0, 9))
