@@ -1,3 +1,4 @@
+*.swp
 git_commands_reminder.txt
 __pycache__/*
 out.html
