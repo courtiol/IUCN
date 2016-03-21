@@ -109,8 +109,8 @@ def scrape_record_data(record_link, output_file):
         abstract = 'NA'
     times_cited = soup.find('span', class_='TCcountFR').text
     next_link = soup.find('a', class_='paginationNext')['href']
-    record_data_list = [title, authors, journal, doi, pub_date, times_cited, abstract]
-    write_to_csv(output_file, record_data_list)
+    record_data = (title, authors, journal, doi, pub_date, times_cited, abstract)
+    write_to_csv(output_file, record_data)
     if soup.find('a', class_='paginationNextDisabled') == None:
         return(next_link)
     else:
@@ -131,30 +131,30 @@ def initiate_search(search_string, start_year, end_year):
     return (result_count, record_1_link)
 
 def process_search(search_string, year_range, result_count_file_name, species_file_name):
-    species_file_name = year_range[0] + '-' + year_range[1] + '_' + species_file_name
+    species_file_name = species_file_name + '_' + year_range[0] + '-' + year_range[1] + '.csv'
     # Write column headings to files
     write_to_csv(species_file_name, ['title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
 
     initial_search = initiate_search(search_string, year_range[0], year_range[1])
-    #try:
-    result_count = int(initial_search[0])
-    scrape_result = scrape_record_data(initial_search[1], species_file_name)
-    if scrape_result == 'Last record scraped':
-        print(scrape_result + ': ' + record_number)
-    else:
-        search_record_base_link = '='.join(scrape_result.split('=')[:-1]) + '='
-        record_number = 2 # Start at 2 because line above already scrapes first record
-        while record_number < (result_count + 1):
-            scrape_result = scrape_record_data(search_record_base_link + str(record_number), species_file_name)
-            print(record_number)
-            if scrape_result == 'Last record scraped':
-                print(scrape_result + ': ' + record_number)
-                break
-            record_number += 1
-    write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], result_count, record_number])
-    #except:
-        #write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search])
-        #print('Error scraping %s' % search_string)
+    try:
+        result_count = int(initial_search[0])
+        scrape_result = scrape_record_data(initial_search[1], species_file_name)
+        if scrape_result == 'Last record scraped':
+            print(scrape_result + ': ' + str(record_number))
+        else:
+            search_record_base_link = '='.join(scrape_result.split('=')[:-1]) + '='
+            record_number = 2 # Start at 2 because line above already scrapes first record
+            while record_number < (result_count + 1):
+                scrape_result = scrape_record_data(search_record_base_link + str(record_number), species_file_name)
+                print(record_number)
+                if scrape_result == 'Last record scraped':
+                    print(scrape_result + ': ' + str(record_number))
+                    break
+                record_number += 1
+        write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], result_count, record_number])
+    except:
+        write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search])
+        print('Error scraping %s' % search_string)
 
 def write_res(html_string): # output a html file for debugging
     f = open('out.html', 'w')
@@ -187,8 +187,8 @@ for row in listfile_unprocessed:
 
 print(species_list)
 
-year_range_before = [listfile_unprocessed[0][5], listfile_unprocessed[0][4]]
-year_range_after = [str(int(listfile_unprocessed[0][4]) + 1), listfile_unprocessed[0][6]]
+year_range_before = (listfile_unprocessed[0][5], listfile_unprocessed[0][4])
+year_range_after = (str(int(listfile_unprocessed[0][4]) + 1), listfile_unprocessed[0][6])
 print('RANGES')
 print(year_range_before)
 print(year_range_after)
@@ -198,11 +198,11 @@ result_count_file = './output/result_count.csv'
 # Write column headings to result_count_file
 write_to_csv(result_count_file, ['species', 'search_string', 'start_year', 'end_year', 'result_count', 'results_scraped'])
 
-for species in species_list[species_list.index('Gorilla gorilla'):species_list.index('Gorilla gorilla') + 1]:
+for species in species_list:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
-    file_name_1 = './output/' + '_'.join(species.split()) + '-quotes.csv'
-    file_name_2 = './output/' + '_'.join(species.split()) + '-and.csv'
+    file_name_1 = './output/' + '_'.join(species.split()) + '-quotes'
+    file_name_2 = './output/' + '_'.join(species.split()) + '-and'
 
     process_search(search_string_1, year_range_before, result_count_file, file_name_1)
     process_search(search_string_1, year_range_after, result_count_file, file_name_1)
