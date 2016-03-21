@@ -62,8 +62,7 @@ def get_result_count(search_result_text):
         print('Error in get_result_count')
         errors.append(['get_result_count', search_result_text])
 
-# BAUSTELLE
-def scrape_record_data(record_link, last_record_number, search_id, output_file):
+def scrape_record_data(record_link, output_file):
     for get_attempt in range(10):
         try:
             req = requests.get(base_url + record_link)
@@ -110,19 +109,15 @@ def scrape_record_data(record_link, last_record_number, search_id, output_file):
         abstract = 'NA'
     times_cited = soup.find('span', class_='TCcountFR').text
     next_link = soup.find('a', class_='paginationNext')['href']
+    record_data_list = [title, authors, journal, doi, pub_date, times_cited, abstract]
+    write_to_csv(output_file, record_data_list)
     if soup.find('a', class_='paginationNextDisabled') == None:
-        record_number = int(next_link.split('=')[-1]) - 1
-        record_data_list = [search_id, record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
-        print(record_number)
-        write_to_csv(output_file, record_data_list)
+        return(next_link)
     else:
-        record_number = last_record_number + 1
-        record_data_list = [search_id, record_number, title, authors, journal, doi, pub_date, times_cited, abstract]
-        print(record_number)
-        write_to_csv(output_file, record_data_list)
         print('Done with scraping this search!')
+        return('Last record scraped')
 
-def process_search(species, search_string, start_year, end_year, search_id, output_file):
+def initiate_search(search_string, start_year, end_year):
     search_result_text = search_wok(search_string, start_year, end_year).text
     soup = BeautifulSoup(search_result_text)
     if soup.find('div', class_='newErrorHead') != None:
@@ -133,8 +128,33 @@ def process_search(species, search_string, start_year, end_year, search_id, outp
     else:
         result_count = get_result_count(search_result_text)
         record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
-    write_to_csv(output_file, [search_id, species, search_string, start_year, end_year, result_count])
-    return record_1_link
+    return (result_count, record_1_link)
+
+def process_search(search_string, year_range, result_count_file_name, species_file_name):
+    species_file_name = year_range[0] + '-' + year_range[1] + '_' + species_file_name
+    # Write column headings to files
+    write_to_csv(species_file_name, ['title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
+
+    initial_search = initiate_search(search_string, year_range[0], year_range[1])
+    #try:
+    result_count = int(initial_search[0])
+    scrape_result = scrape_record_data(initial_search[1], species_file_name)
+    if scrape_result == 'Last record scraped':
+        print(scrape_result + ': ' + record_number)
+    else:
+        search_record_base_link = '='.join(scrape_result.split('=')[:-1]) + '='
+        record_number = 2 # Start at 2 because line above already scrapes first record
+        while record_number < (result_count + 1):
+            scrape_result = scrape_record_data(search_record_base_link + str(record_number), species_file_name)
+            print(record_number)
+            if scrape_result == 'Last record scraped':
+                print(scrape_result + ': ' + record_number)
+                break
+            record_number += 1
+    write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], result_count, record_number])
+    #except:
+        #write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search])
+        #print('Error scraping %s' % search_string)
 
 def write_res(html_string): # output a html file for debugging
     f = open('out.html', 'w')
@@ -173,26 +193,20 @@ print('RANGES')
 print(year_range_before)
 print(year_range_after)
 
-search_id = 151
 result_count_file = './output/result_count.csv'
 
-# Write column headings to files
-write_to_csv(result_count_file, ['search_id', 'species', 'search_string', 'start_year', 'end_year', 'result_count'])
+# Write column headings to result_count_file
+write_to_csv(result_count_file, ['species', 'search_string', 'start_year', 'end_year', 'result_count', 'results_scraped'])
 
 for species in species_list[species_list.index('Gorilla gorilla'):species_list.index('Gorilla gorilla') + 1]:
     search_string_1 = '"' + species + '"'
     search_string_2 = ' AND '.join(species.split())
     file_name_1 = './output/' + '_'.join(species.split()) + '-quotes.csv'
     file_name_2 = './output/' + '_'.join(species.split()) + '-and.csv'
-    # Write column headings to files
-    write_to_csv(file_name_1, ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
-    write_to_csv(file_name_2, ['search_id', 'record_number', 'title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
-    scrape_record_data(process_search(species, search_string_1, year_range_before[0], year_range_before[1], search_id, result_count_file), 0, search_id, file_name_1)
-    search_id += 1 # Better if it was in the process_search function, but getting 'local variable referenced before assignment' error if I don't pass it into the function, and it doesn't change the variable outside the function if I do pass it in
-    scrape_record_data(process_search(species, search_string_2, year_range_before[0], year_range_before[1], search_id, result_count_file), 0, search_id, file_name_2)
-    search_id += 1
-    scrape_record_data(process_search(species, search_string_1, year_range_after[0], year_range_after[1], search_id, result_count_file), 0, search_id, file_name_1)
-    search_id += 1
-    scrape_record_data(process_search(species, search_string_2, year_range_after[0], year_range_after[1], search_id, result_count_file), 0, search_id, file_name_2)
-    search_id += 1
+
+    process_search(search_string_1, year_range_before, result_count_file, file_name_1)
+    process_search(search_string_1, year_range_after, result_count_file, file_name_1)
+    process_search(search_string_2, year_range_before, result_count_file, file_name_2)
+    process_search(search_string_2, year_range_after, result_count_file, file_name_2)
+
     time.sleep(random.randint(0, 9))
