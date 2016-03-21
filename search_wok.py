@@ -123,8 +123,10 @@ def initiate_search(search_string, start_year, end_year):
     if soup.find('div', class_='newErrorHead') != None:
         if soup.find('div', class_='newErrorHead').text == 'Your search found no records.':
             result_count = '0'
+            record_1_link = None
         else:
             result_count = soup.find('div', class_='newErrorHead').text
+            record_1_link = None
     else:
         result_count = get_result_count(search_result_text)
         record_1_link = soup.find('div', id='RECORD_1').find('a')['href']
@@ -136,14 +138,16 @@ def process_search(search_string, year_range, result_count_file_name, species_fi
     write_to_csv(species_file_name, ['title', 'authors', 'journal', 'doi', 'pub_date', 'times_cited', 'abstract'])
 
     initial_search = initiate_search(search_string, year_range[0], year_range[1])
-    try:
+    if initial_search[1] != None:
+        #try:
         result_count = int(initial_search[0])
         scrape_result = scrape_record_data(initial_search[1], species_file_name)
+        record_number = 1
         if scrape_result == 'Last record scraped':
             print(scrape_result + ': ' + str(record_number))
         else:
             search_record_base_link = '='.join(scrape_result.split('=')[:-1]) + '='
-            record_number = 2 # Start at 2 because line above already scrapes first record
+            record_number = 2
             while record_number < (result_count + 1):
                 scrape_result = scrape_record_data(search_record_base_link + str(record_number), species_file_name)
                 print(record_number)
@@ -152,9 +156,11 @@ def process_search(search_string, year_range, result_count_file_name, species_fi
                     break
                 record_number += 1
         write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], result_count, record_number])
-    except:
-        write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search])
-        print('Error scraping %s' % search_string)
+        #except:
+         #   write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search])
+          #  print('Error scraping %s' % search_string)
+    else:
+         write_to_csv(result_count_file_name, [species, search_string, year_range[0], year_range[1], initial_search[0]])
 
 def write_res(html_string): # output a html file for debugging
     f = open('out.html', 'w')
