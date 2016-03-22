@@ -5,4 +5,5 @@ search web of science
   - get number of results
   - export data/abstracts/etc
 
-
+set html parser for consistent results with beautiful soup
+clean up so it's easier to install/run
